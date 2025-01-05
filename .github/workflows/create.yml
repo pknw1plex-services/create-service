@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       name:
-        description: build profile
+        description: App Name
       link:
-        description: info URL
+        description: Info URL
         required: true
         default: 'https://github.com/pknw1'
       environment:
         type: choice
-        description: Who to greet
+        description: Environment Tag
         options: 
         - prod
         - dev
