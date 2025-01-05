@@ -1,0 +1,98 @@
+name: Create Stack
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: App Name
+        required: true
+      link:
+        description: Info URL
+        required: true
+        default: 'https://github.com/pknw1'
+      environment:
+        type: choice
+        description: Environment Tag
+        options: 
+        - prod
+        - dev
+        - stack
+        default: stack
+      create_stack:
+        description: 'Create Service Repo'
+        required: true
+        default: true
+        type: boolean  
+      backup_stack:  
+        description: 'Backup Service Repo'
+        required: true
+        type: boolean
+        default: true
+
+env:
+  GH_TOKEN: ${{ secrets.GH_ORG }}
+  ORG_TOKEN: ${{ secrets.GH_ORG }}
+  SOME_SECRET: some-secret-value
+  
+jobs:
+  create_service:
+    runs-on: ubuntu-latest
+    if:  ${{ inputs.create_stack }} 
+    steps:
+    - name: create repos
+      env:
+        GH_TOKEN: ${{ secrets.GH_ORG }}
+      run: |
+        gh repo create --public --description "Docker Compose Stack for ${{ inputs.name }} ${{ inputs.link }}" --template pknw1plex-services/stack-template 'pknw1plex-services/${{ inputs.name }}-${{ inputs.environment }}'
+ 
+  clone_service:
+    runs-on: ubuntu-latest
+    if:  ${{ inputs.create_stack }} 
+    needs: create_service
+    steps:
+    - name: Set up SSH key
+      run: |
+        env
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+    - name: create repos
+      env:
+        GH_TOKEN: ${{ secrets.GH_ORG }}
+      run: |
+        gh repo clone 'pknw1plex-services/${{ inputs.name }}-${{ inputs.environment }}'
+        sed -i 's/https:\/\/github.com\//git@github.com:/g' ${{ inputs.name }}-${{ inputs.environment }}/.git/config
+        sed -i 's/REPLACE/${{ secrets.DOCKER_ROOT }}/g' ${{ inputs.name }}-${{ inputs.environment }}/.env
+    - name: copy file via ssh password
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SSH_SERVER }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        source: "${{ inputs.name }}-${{ inputs.environment }}"
+        target: ${{ secrets.DOCKER_ROOT }}
+
+  backup_service:
+    needs: clone_service
+    runs-on: ubuntu-latest
+    if:  ${{ inputs.backup_stack }} 
+    steps:
+    - uses: actions/checkout@v3
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.SSH_SERVER }}
+        username:  ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: cd "${{ secrets.DOCKER_ROOT }}/${{ inputs.name }}-${{ inputs.environment }}" && sudo git config --global --add safe.directory $(pwd)
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.SSH_SERVER }}
+        username:  ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: cd "${{ secrets.DOCKER_ROOT }}/${{ inputs.name }}-${{ inputs.environment }}" && echo $(date) > ver  && git add . && git commit -m "auto" && git push
+
