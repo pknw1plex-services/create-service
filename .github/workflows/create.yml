@@ -5,6 +5,7 @@ on:
     inputs:
       name:
         description: App Name
+        required: true
       link:
         description: Info URL
         required: true
