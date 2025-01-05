@@ -5,6 +5,10 @@ on:
     inputs:
       name:
         description: build profile
+      link:
+        description: info URL
+        required: true
+        default: 'https://github.com/pknw1'
       environment:
         type: choice
         description: Who to greet
@@ -42,7 +46,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GH_ORG }}
       run: |
-        gh repo create --public --description "Docker Compose setup for ${{ inputs.name }}" --template pknw1plex-services/service-template 'pknw1plex-services/${{ inputs.name }}-${{ inputs.environment }}'
+        gh repo create --public --description "Docker Compose setup for ${{ inputs.name }} ${{ inputs.link }}" --template pknw1plex-services/service-template 'pknw1plex-services/${{ inputs.name }}-${{ inputs.environment }}'
         gh repo create --private --description "Config folder for ${{ inputs.name }}" --template pknw1plex-services/config-template 'pknw1plex-services/${{ inputs.name }}-config'
  
   clone_service:
