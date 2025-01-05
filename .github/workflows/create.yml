@@ -1,0 +1,115 @@
+name: Create Service
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: build profile
+      environment:
+        type: choice
+        description: Who to greet
+        options: 
+        - prod
+        - dev
+        default: prod
+      create_service:
+        description: 'Create Service Repo'
+        required: true
+        default: true
+        type: boolean  
+      backup_service:  
+        description: 'Backup Service Repo'
+        required: true
+        type: boolean
+        default: true
+      backup_config:  
+        description: 'Backup Config Repo'
+        required: true
+        type: boolean
+        default: true
+
+env:
+  GH_TOKEN: ${{ secrets.GH_ORG }}
+  ORG_TOKEN: ${{ secrets.GH_ORG }}
+  SOME_SECRET: some-secret-value
+  
+jobs:
+  create_service:
+    runs-on: ubuntu-latest
+    if:  ${{ inputs.name }} 
+    steps:
+    - name: create repos
+      env:
+        GH_TOKEN: ${{ secrets.GH_ORG }}
+      run: |
+        gh repo create --public --description "Docker Compose setup for ${{ inputs.name }}" --template pknw1plex-services/service-template 'pknw1plex-services/${{ inputs.name }}-${{ inputs.environment }}'
+        gh repo create --private --description "Config folder for ${{ inputs.name }}" --template pknw1plex-services/config-template 'pknw1plex-services/${{ inputs.name }}-config'
+ 
+  clone_service:
+    runs-on: ubuntu-latest
+    needs: create_service
+    steps:
+    - name: Set up SSH key
+      run: |
+        env
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+    - name: create repos
+      env:
+        GH_TOKEN: ${{ secrets.GH_ORG }}
+      run: |
+        gh repo clone 'pknw1plex-services/${{ inputs.name }}-${{ inputs.environment }}'
+        gh repo clone 'pknw1plex-services/${{ inputs.name }}-config' '${{ inputs.name }}-${{ inputs.environment }}/config'
+        sed -i 's/https:\/\/github.com\//git@github.com:/g' ${{ inputs.name }}-${{ inputs.environment }}/.git/config
+        sed -i 's/https:\/\/github.com\//git@github.com:/g' ${{ inputs.name }}-${{ inputs.environment }}/config/.git/config
+        cd '${{ inputs.name }}-${{ inputs.environment }}' 
+        ln -s config/.env .env
+    - name: copy file via ssh password
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SSH_SERVER }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        source: "${{ inputs.name }}-${{ inputs.environment }}"
+        target: ${{ secrets.DOCKER_ROOT }}
+
+  backup_service:
+    needs: clone_service
+    runs-on: ubuntu-latest
+    if:  ${{ inputs.backup_service }} 
+    steps:
+    - uses: actions/checkout@v3
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.SSH_SERVER }}
+        username:  ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: cd "${{ secrets.DOCKER_ROOT }}/${{ inputs.name }}-${{ inputs.environment }}" && sudo git config --global --add safe.directory $(pwd)
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.SSH_SERVER }}
+        username:  ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: cd "${{ secrets.DOCKER_ROOT }}/${{ inputs.name }}-${{ inputs.environment }}" && echo $(date) > ver  && git add . && git commit -m "auto" && git push
+
+
+  backup_config:
+    needs: backup_service
+    runs-on: ubuntu-latest
+    if:  ${{ inputs.backup_config }} 
+    steps:
+    - uses: actions/checkout@v3
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.SSH_SERVER }}
+        username:  ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script:  cd "${{ secrets.DOCKER_ROOT }}/${{ inputs.name }}-${{ inputs.environment }}/config" && echo $(date) > ver && git add . && git commit -m "auto" && git push
