@@ -36,7 +36,7 @@ env:
 jobs:
   create_service:
     runs-on: ubuntu-latest
-    if:  ${{ inputs.name }} 
+    if:  ${{ inputs.create_service }} 
     steps:
     - name: create repos
       env:
@@ -47,6 +47,7 @@ jobs:
  
   clone_service:
     runs-on: ubuntu-latest
+    if:  ${{ inputs.create_service }} 
     needs: create_service
     steps:
     - name: Set up SSH key
