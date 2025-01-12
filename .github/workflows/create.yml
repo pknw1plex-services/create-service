@@ -17,6 +17,14 @@ on:
         - prod
         - dev
         default: prod
+      server:
+        type: choice
+        options:
+        - 'ks5.pknw1.co.uk'
+        - 'uk.pknw1.co.uk'
+      docker_root:
+        required: true
+        default: '/etc/pknw1/docker'
       create_service:
         description: 'Create Service Repo'
         required: true
@@ -74,12 +82,12 @@ jobs:
     - name: copy file via ssh password
       uses: appleboy/scp-action@v0.1.7
       with:
-        host: ${{ secrets.SSH_SERVER }}
+        host: ${{ inputs.server }} 
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
         source: "${{ inputs.name }}-${{ inputs.environment }}"
-        target: "/etc/docker/services"
+        target: "${{ inputs.docker_root }}"
 
   backup_service:
     needs: clone_service
@@ -90,11 +98,11 @@ jobs:
     - name: executing remote ssh commands using password
       uses: appleboy/ssh-action@v1.2.0
       with:
-        host: ${{ secrets.SSH_SERVER }}
+        host: ${{ inputs.server }} 
         username:  ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
-        script: cd "/etc/docker/services/${{ inputs.name }}-${{ inputs.environment }}" && sudo git config --global --add safe.directory $(pwd)
+        script: cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}" && sudo git config --global --add safe.directory $(pwd)
     - name: executing remote ssh commands using password
       uses: appleboy/ssh-action@v1.2.0
       with:
@@ -102,7 +110,7 @@ jobs:
         username:  ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
-        script: cd "/etc/docker/services/${{ inputs.name }}-${{ inputs.environment }}" && echo $(date) > ver  && git add . && git commit -m "auto" && git push
+        script: cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}" && echo $(date) > ver  && git add . && git commit -m "auto" && git push
 
 
   backup_config:
@@ -114,8 +122,8 @@ jobs:
     - name: executing remote ssh commands using password
       uses: appleboy/ssh-action@v1.2.0
       with:
-        host: ${{ secrets.SSH_SERVER }}
+        host: ${{ inputs.server }} 
         username:  ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
-        script:  cd "/etc/docker/services/${{ inputs.name }}-${{ inputs.environment }}/config" && echo $(date) > ver && git add . && git commit -m "auto" && git push
+        script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}/config" && echo $(date) > ver && git add . && git commit -m "auto" && git push
