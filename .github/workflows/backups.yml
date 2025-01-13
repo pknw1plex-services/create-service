@@ -91,6 +91,14 @@ jobs:
         username:  ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
+        script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}/config" && sudo git config --global --add safe.directory $(pwd)
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ inputs.server }} 
+        username:  ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
         script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}/config" && echo $(date) > ver && git add . && git commit -m "auto" && git push
     - name: executing remote ssh commands using password
       uses: appleboy/ssh-action@v1.2.0
