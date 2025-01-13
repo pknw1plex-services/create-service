@@ -91,7 +91,7 @@ jobs:
         username:  ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
-        script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}/config" && sudo git config --global --add safe.directory $(pwd)
+        script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}/config" && git config --global --add safe.directory ${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}/config
     - name: executing git add
       uses: appleboy/ssh-action@v1.2.0
       with:
