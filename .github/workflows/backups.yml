@@ -83,7 +83,7 @@ jobs:
         username:  ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
-        script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}" && docker compose stop
+        script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}" && docker stop ${{ inputs.name }}
     - name: executing remote git config
       uses: appleboy/ssh-action@v1.2.0
       with:
@@ -107,4 +107,4 @@ jobs:
         username:  ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
-        script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}" && docker compose start
+        script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}" && docker start ${{ inputs.name }}
