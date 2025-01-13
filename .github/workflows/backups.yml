@@ -76,7 +76,7 @@ jobs:
     if:  ${{ inputs.backup_config }} 
     steps:
     - uses: actions/checkout@v3
-    - name: executing remote ssh commands using password
+    - name: executing remote stop
       uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ inputs.server }} 
@@ -84,7 +84,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
         script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}" && docker compose stop
-    - name: executing remote ssh commands using password
+    - name: executing remote git config
       uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ inputs.server }} 
@@ -92,7 +92,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
         script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}/config" && sudo git config --global --add safe.directory $(pwd)
-    - name: executing remote ssh commands using password
+    - name: executing git add
       uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ inputs.server }} 
@@ -100,7 +100,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
         script:  cd "${{ inputs.docker_root }}/${{ inputs.name }}-${{ inputs.environment }}/config" && echo $(date) > ver && git add . && git commit -m "auto" && git push
-    - name: executing remote ssh commands using password
+    - name: executing remote start
       uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ inputs.server }} 
